@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GymLog — Theo Dõi Lịch Tập</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Be+Vietnam+Pro:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0d0f;
+  --bg2: #141416;
+  --bg3: #1c1c1f;
+  --bg4: #242428;
+  --accent: #c8f135;
+  --accent2: #a8d020;
+  --text: #f0f0ee;
+  --muted: #6b6b72;
+  --muted2: #9b9ba2;
+  --border: rgba(255,255,255,0.08);
+  --red: #ff5a4a;
+  --blue: #4a9fff;
+  --orange: #ff8c3a;
+  --purple: #b06bff;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+/* HEADER */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,13,15,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; letter-spacing: 2px; color: var(--accent); }
+.logo span { color: var(--text); }
+.week-label { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.streak-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg3); border: 1px solid var(--border);
+  padding: 6px 14px; border-radius: 99px;
+  font-size: 13px; font-weight: 500;
+}
+.streak-badge .fire { font-size: 16px; }
+
+/* MAIN LAYOUT */
+.main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+/* HERO STATS */
+.stats-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-bottom: 32px;
+}
+.stat-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative; overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.stat-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); }
+.stat-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(200,241,53,0.04) 0%, transparent 60%);
+}
+.stat-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+.stat-card .value { font-family: 'Barlow Condensed', sans-serif; font-size: 40px; color: var(--accent); line-height: 1; }
+.stat-card .sub { font-size: 12px; color: var(--muted2); margin-top: 4px; }
+.stat-card .icon-bg {
+  position: absolute; right: 16px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 36px; opacity: 0.12;
+}
+
+/* CONTENT GRID */
+.content-grid {
+  display: grid; grid-template-columns: 1fr 340px;
+  gap: 24px; align-items: start;
+}
+
+/* WEEK CALENDAR */
+.week-nav {
+  display: flex; gap: 8px; margin-bottom: 20px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 6px;
+}
+.day-tab {
+  flex: 1; padding: 10px 4px; border-radius: var(--radius-sm);
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 12px; transition: all 0.2s; text-align: center;
+}
+.day-tab .day-short { display: block; font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+.day-tab .day-num { display: block; font-size: 10px; color: var(--muted); }
+.day-tab.active { background: var(--accent); color: #0d0d0f; }
+.day-tab.active .day-num { color: rgba(13,13,15,0.6); }
+.day-tab.done .day-short::after { content: '✓'; color: var(--accent); font-size: 10px; margin-left: 3px; }
+.day-tab.rest { opacity: 0.4; }
+
+/* WORKOUT CARD */
+.workout-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.workout-header {
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.workout-type {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em;
+  padding: 5px 12px; border-radius: 99px; font-weight: 600;
+}
+.workout-title { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; letter-spacing: 1px; margin-top: 4px; }
+.workout-meta { display: flex; gap: 16px; margin-top: 8px; }
+.meta-item { font-size: 12px; color: var(--muted2); display: flex; align-items: center; gap: 5px; }
+.start-btn {
+  background: var(--accent); color: #0d0d0f;
+  border: none; border-radius: var(--radius-sm);
+  padding: 12px 24px; font-weight: 600; font-size: 14px;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  font-family: 'Be Vietnam Pro', sans-serif;
+}
+.start-btn:hover { background: var(--accent2); transform: scale(1.02); }
+.start-btn.done-btn { background: var(--bg4); color: var(--accent); border: 1px solid var(--accent); }
+
+/* EXERCISE LIST */
+.ex-list { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.ex-item {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 16px;
+  display: flex; align-items: center; gap: 14px;
+  cursor: pointer; transition: all 0.2s; position: relative;
+}
+.ex-item:hover { border-color: rgba(255,255,255,0.18); background: var(--bg4); }
+.ex-item.completed { border-color: rgba(200,241,53,0.3); background: rgba(200,241,53,0.04); }
+.ex-item.completed .ex-name { text-decoration: line-through; color: var(--muted); }
+.ex-img {
+  width: 60px; height: 60px; border-radius: 10px;
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 28px; background: var(--bg);
+  border: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.ex-img svg { width: 52px; height: 52px; }
+.ex-info { flex: 1; min-width: 0; }
+.ex-name { font-weight: 500; font-size: 14px; margin-bottom: 3px; }
+.ex-target { font-size: 11px; color: var(--muted2); margin-bottom: 6px; }
+.ex-sets-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.set-pill {
+  font-size: 11px; padding: 3px 10px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 99px; color: var(--muted2);
+  font-family: 'DM Mono', monospace;
+}
+.ex-check {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid var(--border); background: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; flex-shrink: 0; color: transparent; font-size: 14px;
+}
+.ex-check:hover { border-color: var(--accent); }
+.ex-item.completed .ex-check { background: var(--accent); border-color: var(--accent); color: #0d0d0f; }
+.ex-detail-btn {
+  font-size: 11px; color: var(--muted); text-decoration: none;
+  position: absolute; right: 16px; bottom: 10px;
+  background: none; border: none; cursor: pointer;
+  font-family: 'Be Vietnam Pro', sans-serif; padding: 0;
+}
+.ex-detail-btn:hover { color: var(--accent); }
+
+/* PROGRESS BAR */
+.progress-wrap { padding: 16px 24px; border-top: 1px solid var(--border); }
+.progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted2); margin-bottom: 8px; }
+.progress-bar { height: 4px; background: var(--bg4); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+
+/* SIDEBAR */
+.sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+/* NUTRITION CARD */
+.nutrition-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.card-header {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted2); }
+.card-tag { font-size: 11px; padding: 3px 10px; border-radius: 99px; font-weight: 600; }
+.nutrition-hero { padding: 20px; text-align: center; }
+.cal-display { font-family: 'Barlow Condensed', sans-serif; font-size: 64px; color: var(--accent); line-height: 1; }
+.cal-label { font-size: 12px; color: var(--muted2); margin-top: 4px; }
+.macro-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 20px 16px; }
+.macro-item { background: var(--bg3); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
+.macro-val { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; line-height: 1; }
+.macro-key { font-size: 10px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
+.macro-bar { height: 3px; border-radius: 2px; margin-top: 8px; }
+
+.meal-list { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+.meal-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg3); border-radius: var(--radius-sm); padding: 12px;
+}
+.meal-icon { font-size: 22px; }
+.meal-info { flex: 1; }
+.meal-name { font-size: 13px; font-weight: 500; }
+.meal-desc { font-size: 11px; color: var(--muted2); margin-top: 1px; }
+.meal-kcal { font-size: 12px; font-weight: 600; color: var(--accent); font-family: 'DM Mono', monospace; }
+
+/* WEEKLY PROGRESS */
+.weekly-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+}
+.weekly-bars { display: flex; gap: 8px; align-items: flex-end; height: 80px; margin-top: 16px; }
+.w-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.w-bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+.w-label { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+/* TIPS CARD */
+.tips-card {
+  background: linear-gradient(135deg, rgba(200,241,53,0.08) 0%, rgba(200,241,53,0.02) 100%);
+  border: 1px solid rgba(200,241,53,0.2);
+  border-radius: var(--radius); padding: 20px;
+}
+.tips-card .tip-title { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.tips-card .tip-text { font-size: 13px; color: var(--muted2); line-height: 1.6; }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+  backdrop-filter: blur(8px);
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 24px; width: 100%; max-width: 560px;
+  max-height: 80vh; overflow-y: auto;
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.modal-overlay.open .modal { transform: translateY(0) scale(1); }
+.modal-header {
+  padding: 24px 24px 16px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+.modal-close {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--bg3);
+  border: 1px solid var(--border); color: var(--muted2); font-size: 16px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; flex-shrink: 0; margin-top: 2px;
+}
+.modal-close:hover { background: var(--bg4); color: var(--text); }
+.modal-body { padding: 20px 24px 24px; }
+.modal-ex-title { font-family: 'Barlow Condensed', sans-serif; font-size: 32px; letter-spacing: 1px; margin-bottom: 4px; }
+.modal-tag { display: inline-flex; align-items: center; font-size: 11px; padding: 4px 12px; border-radius: 99px; font-weight: 600; margin-bottom: 16px; }
+.anim-wrap {
+  background: var(--bg3); border-radius: var(--radius); padding: 24px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px; min-height: 180px; position: relative; overflow: hidden;
+}
+.anim-wrap svg { width: 150px; height: 150px; }
+.steps-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.step-item { display: flex; gap: 12px; align-items: flex-start; }
+.step-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(200,241,53,0.15); color: var(--accent);
+  font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+.step-text { font-size: 13px; color: var(--muted2); line-height: 1.6; }
+.modal-sets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mset-card {
+  background: var(--bg3); border-radius: var(--radius-sm); padding: 14px;
+  text-align: center; border: 1px solid var(--border);
+}
+.mset-val { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; color: var(--accent); line-height: 1; }
+.mset-key { font-size: 10px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.07em; }
+.muscles-wrap { margin-top: 16px; }
+.muscles-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.muscles-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.muscle-tag {
+  font-size: 11px; padding: 4px 12px; border-radius: 99px;
+  border: 1px solid var(--border); color: var(--muted2);
+}
+.muscle-tag.primary { border-color: rgba(200,241,53,0.4); color: var(--accent); background: rgba(200,241,53,0.07); }
+
+/* NOTIFICATION */
+.notif {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  background: var(--bg3); border: 1px solid rgba(200,241,53,0.3);
+  border-radius: var(--radius-sm); padding: 14px 20px;
+  font-size: 13px; color: var(--text);
+  transform: translateX(120%); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.notif.show { transform: translateX(0); }
+.notif .n-icon { font-size: 18px; }
+
+/* REST DAY */
+.rest-day {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 60px 24px; text-align: center;
+}
+.rest-day .rest-icon { font-size: 64px; margin-bottom: 20px; }
+.rest-day h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 36px; color: var(--accent); margin-bottom: 8px; }
+.rest-day p { font-size: 14px; color: var(--muted2); line-height: 1.7; max-width: 360px; }
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .sidebar { display: grid; grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .sidebar { grid-template-columns: 1fr; }
+  .header { padding: 0 16px; }
+  .main { padding: 20px 16px; }
+  .modal-sets-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ANIMATIONS */
+@keyframes fadeInUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+@keyframes wiggle { 0%,100% { transform:rotate(0); } 25% { transform:rotate(-5deg); } 75% { transform:rotate(5deg); } }
+.fade-in { animation: fadeInUp 0.4s ease both; }
+.fade-in:nth-child(1) { animation-delay: 0.05s; }
+.fade-in:nth-child(2) { animation-delay: 0.1s; }
+.fade-in:nth-child(3) { animation-delay: 0.15s; }
+.fade-in:nth-child(4) { animation-delay: 0.2s; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">GYM<span>LOG</span></div>
+  <span class="week-label" id="weekLabel"></span>
+  <div class="header-right">
+    <div class="streak-badge">
+      <span class="fire">🔥</span>
+      <span id="streakCount">0</span> ngày liên tiếp
+    </div>
+  </div>
+</header>
+
+<main class="main">
+  <!-- STATS ROW -->
+  <div class="stats-row" id="statsRow"></div>
+
+  <div class="content-grid">
+    <!-- LEFT: WORKOUT -->
+    <div>
+      <div class="week-nav" id="weekNav"></div>
+      <div class="workout-section" id="workoutSection"></div>
+    </div>
+
+    <!-- RIGHT: SIDEBAR -->
+    <div class="sidebar">
+      <div class="nutrition-card" id="nutritionCard"></div>
+      <div class="weekly-card" id="weeklyCard"></div>
+      <div class="tips-card" id="tipsCard"></div>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<!-- NOTIFICATION -->
+<div class="notif" id="notif">
+  <span class="n-icon">✓</span>
+  <span id="notifText">Hoàn thành!</span>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────
+const WEEK_DATA = [
+  {
+    id: 0, short: "T2", name: "Thứ 2", type: "Push", typeColor: "#4a9fff", typeBg: "rgba(74,159,255,0.15)",
+    title: "Ngực + Vai Trước",
+    duration: "60 phút", difficulty: "Trung bình",
+    exercises: [
+      {
+        id: "bench", name: "Đẩy ngực nằm ngang", emoji: "🏋️",
+        target: "Ngực lớn, vai trước, tay sau",
+        sets: 4, reps: 10, rest: "90 giây",
+        muscles: ["Ngực lớn", "Vai trước", "Tricep"],
+        steps: [
+          "Nằm thẳng trên ghế, hai chân chạm sàn vững chắc.",
+          "Cầm tạ rộng hơn vai một chút, hạ tạ chậm đến ngực.",
+          "Đẩy lên thẳng tay, thở ra khi đẩy lên.",
+          "Giữ lưng dưới cong tự nhiên, không arch quá mức."
+        ],
+        svgKey: "bench"
+      },
+      {
+        id: "incline", name: "Đẩy ngực nghiêng 30°", emoji: "📐",
+        target: "Ngực trên + vai trước",
+        sets: 3, reps: 12, rest: "75 giây",
+        muscles: ["Ngực trên", "Vai trước", "Tricep"],
+        steps: [
+          "Điều chỉnh ghế nghiêng 30–45 độ.",
+          "Cầm tạ bằng vai, khuỷu tay 45° so với thân.",
+          "Hạ tạ đến đường ngực trên, đẩy thẳng lên.",
+          "Không khóa khuỷu hoàn toàn để giữ căng cơ."
+        ],
+        svgKey: "incline"
+      },
+      {
+        id: "shoulder", name: "Đẩy vai (Shoulder Press)", emoji: "💪",
+        target: "Cơ delta trước và giữa",
+        sets: 3, reps: 12, rest: "75 giây",
+        muscles: ["Delta trước", "Delta giữa", "Tricep"],
+        steps: [
+          "Ngồi thẳng lưng, tạ ngang tai, khuỷu 90°.",
+          "Đẩy tạ thẳng lên đầu, không đẩy ra phía trước.",
+          "Hạ tạ chậm và kiểm soát về vị trí ban đầu.",
+          "Giữ core chắc, không đổ người ra sau."
+        ],
+        svgKey: "shoulder"
+      },
+      {
+        id: "lateral", name: "Lateral Raise", emoji: "🦅",
+        target: "Cơ delta giữa",
+        sets: 3, reps: 15, rest: "60 giây",
+        muscles: ["Delta giữa"],
+        steps: [
+          "Đứng thẳng, tạ dọc hai bên người.",
+          "Nâng tạ ra hai bên đến ngang vai, giữ khuỷu nhẹ.",
+          "Không vung người hoặc dùng đà.",
+          "Hạ chậm để cơ làm việc cả chiều xuống."
+        ],
+        svgKey: "lateral"
+      },
+      {
+        id: "fly", name: "Dumbbell Flye", emoji: "🦋",
+        target: "Căng cơ ngực toàn phần",
+        sets: 3, reps: 15, rest: "60 giây",
+        muscles: ["Ngực lớn", "Ngực nhỏ"],
+        steps: [
+          "Nằm ngang, tạ thẳng trên ngực, khuỷu nhẹ uốn.",
+          "Mở rộng tay ra hai bên theo vòng cung.",
+          "Dừng khi cảm thấy căng ngực, không hạ quá thấp.",
+          "Ép tạ lại theo vòng cung như đang ôm cây."
+        ],
+        svgKey: "fly"
+      }
+    ]
+  },
+  {
+    id: 1, short: "T3", name: "Thứ 3", type: "Pull", typeColor: "#4bcc8c", typeBg: "rgba(75,204,140,0.15)",
+    title: "Lưng + Tay Trước",
+    duration: "60 phút", difficulty: "Trung bình",
+    exercises: [
+      {
+        id: "pulldown", name: "Lat Pulldown", emoji: "🎯",
+        target: "Cơ lưng rộng, tay sau",
+        sets: 4, reps: 10, rest: "90 giây",
+        muscles: ["Lưng rộng", "Tay sau", "Tay trước"],
+        steps: [
+          "Ngồi vào máy, giữ thanh rộng hơn vai.",
+          "Nghiêng người nhẹ ra sau ~15°.",
+          "Kéo thanh xuống ngực trên, khuỷu hướng xuống sàn.",
+          "Cảm nhận lưng rộng co lại, không dùng đà người."
+        ],
+        svgKey: "pulldown"
+      },
+      {
+        id: "row", name: "Seated Cable Row", emoji: "🚣",
+        target: "Lưng giữa, rhomboid",
+        sets: 3, reps: 12, rest: "75 giây",
+        muscles: ["Lưng giữa", "Rhomboid", "Tay trước"],
+        steps: [
+          "Ngồi thẳng lưng trên ghế, chân đặt trên bàn đạp.",
+          "Kéo tay về phía bụng, hai khuỷu tay siết về phía sau.",
+          "Giữ 1 giây ở vị trí co tối đa, cảm nhận lưng giữa.",
+          "Duỗi tay ra từ từ, giữ lưng không tròng."
+        ],
+        svgKey: "row"
+      },
+      {
+        id: "curl", name: "Dumbbell Bicep Curl", emoji: "💪",
+        target: "Cơ tay trước (bicep)",
+        sets: 3, reps: 12, rest: "60 giây",
+        muscles: ["Bicep brachii", "Brachialis"],
+        steps: [
+          "Đứng thẳng, hai tay cầm tạ, lòng bàn tay hướng ra trước.",
+          "Uốn tay lên đến vai, khuỷu không di chuyển.",
+          "Siết bicep ở đỉnh 1 giây, hạ chậm 3 giây.",
+          "Không vung vai hay đổ người ra sau."
+        ],
+        svgKey: "curl"
+      },
+      {
+        id: "hammer", name: "Hammer Curl", emoji: "🔨",
+        target: "Bicep + cơ cánh tay ngoài",
+        sets: 3, reps: 12, rest: "60 giây",
+        muscles: ["Bicep", "Brachialis", "Brachioradialis"],
+        steps: [
+          "Cầm tạ theo kiểu cầm búa, ngón cái hướng lên trên.",
+          "Uốn tay lên đến vai theo đường thẳng.",
+          "Không xoay cổ tay trong suốt chuyển động.",
+          "Có thể tập xen kẽ hai tay để kiểm soát tốt hơn."
+        ],
+        svgKey: "hammer"
+      }
+    ]
+  },
+  {
+    id: 2, short: "T4", name: "Thứ 4", type: "Legs", typeColor: "#ff8c3a", typeBg: "rgba(255,140,58,0.15)",
+    title: "Chân + Mông",
+    duration: "65 phút", difficulty: "Nặng",
+    exercises: [
+      {
+        id: "squat", name: "Barbell Squat", emoji: "🏋️",
+        target: "Đùi trước, mông, toàn bộ chân",
+        sets: 4, reps: 10, rest: "120 giây",
+        muscles: ["Quadriceps", "Gluteus", "Hamstrings", "Core"],
+        steps: [
+          "Đặt tạ đòn lên vai sau, chân rộng bằng vai.",
+          "Ngồi xuống như ngồi vào ghế, gối theo hướng ngón chân.",
+          "Xuống đến đùi song song với sàn hoặc sâu hơn.",
+          "Đứng dậy bằng gót chân, đẩy gối ra ngoài."
+        ],
+        svgKey: "squat"
+      },
+      {
+        id: "rdl", name: "Romanian Deadlift", emoji: "🏋️",
+        target: "Gân kheo, mông, lưng dưới",
+        sets: 3, reps: 12, rest: "90 giây",
+        muscles: ["Hamstrings", "Gluteus", "Lưng dưới"],
+        steps: [
+          "Đứng thẳng, cầm tạ trước đùi.",
+          "Gập hông ra sau, hạ tạ dọc theo chân.",
+          "Lưng phải LUÔN thẳng, không bao giờ tròng.",
+          "Đứng thẳng lại bằng cách siết mông và đẩy hông lên."
+        ],
+        svgKey: "rdl"
+      },
+      {
+        id: "legpress", name: "Leg Press", emoji: "🦵",
+        target: "Đùi trước và sau toàn diện",
+        sets: 3, reps: 15, rest: "90 giây",
+        muscles: ["Quadriceps", "Gluteus", "Hamstrings"],
+        steps: [
+          "Ngồi vào máy, đặt chân rộng bằng vai trên bàn đạp.",
+          "Hạ bàn đạp đến khi gối tạo góc 90°.",
+          "Đẩy chân lên không khóa gối hoàn toàn.",
+          "Điều chỉnh vị trí chân để nhắm vào nhóm cơ khác nhau."
+        ],
+        svgKey: "legpress"
+      },
+      {
+        id: "calf", name: "Standing Calf Raise", emoji: "🦶",
+        target: "Cơ bắp chân sau (gastrocnemius)",
+        sets: 4, reps: 20, rest: "45 giây",
+        muscles: ["Gastrocnemius", "Soleus"],
+        steps: [
+          "Đứng trên tấm nâng hoặc bậc thang, gót chân chìa ra.",
+          "Nâng gót chân lên cao nhất có thể, siết bắp chân.",
+          "Giữ 1 giây ở đỉnh, hạ thấp hơn bình thường.",
+          "Tập chậm để cảm nhận độ giãn ở gót chân."
+        ],
+        svgKey: "calf"
+      }
+    ]
+  },
+  {
+    id: 3, short: "T5", name: "Thứ 5", type: "Push+", typeColor: "#b06bff", typeBg: "rgba(176,107,255,0.15)",
+    title: "Vai + Tay Sau",
+    duration: "55 phút", difficulty: "Trung bình",
+    exercises: [
+      {
+        id: "arnold", name: "Arnold Press", emoji: "💪",
+        target: "Toàn bộ cơ delta 3 đầu",
+        sets: 4, reps: 10, rest: "90 giây",
+        muscles: ["Delta trước", "Delta giữa", "Delta sau"],
+        steps: [
+          "Cầm tạ trước mặt, lòng bàn tay hướng vào mặt.",
+          "Vừa đẩy lên vừa xoay tay ra ngoài.",
+          "Ở đỉnh lòng bàn tay hướng ra trước như shoulder press.",
+          "Hạ xuống và xoay ngược lại theo đường cũ."
+        ],
+        svgKey: "arnold"
+      },
+      {
+        id: "tricep", name: "Tricep Pushdown", emoji: "🔩",
+        target: "Cơ tay sau (tricep) 3 đầu",
+        sets: 3, reps: 12, rest: "60 giây",
+        muscles: ["Tricep brachii"],
+        steps: [
+          "Cầm dây hoặc thanh thẳng, khuỷu tay sát bên người.",
+          "Đẩy tay xuống thẳng cho đến khi cánh tay thẳng.",
+          "Siết tricep ở đáy 1 giây.",
+          "Giữ khuỷu cố định, không xoay người."
+        ],
+        svgKey: "tricep"
+      },
+      {
+        id: "overhead_tri", name: "Overhead Tricep Extension", emoji: "🙌",
+        target: "Tricep đầu dài (long head)",
+        sets: 3, reps: 12, rest: "60 giây",
+        muscles: ["Tricep long head"],
+        steps: [
+          "Cầm tạ trên đầu, hai tay nắm chặt một đầu tạ.",
+          "Hạ tạ ra sau đầu bằng cách uốn khuỷu.",
+          "Đẩy tạ lên bằng sức tricep, không dùng đà.",
+          "Khuỷu luôn hướng thẳng lên trần."
+        ],
+        svgKey: "overhead_tri"
+      },
+      {
+        id: "shrug", name: "Dumbbell Shrug", emoji: "🤷",
+        target: "Cơ thang (trapezius)",
+        sets: 3, reps: 15, rest: "60 giây",
+        muscles: ["Trapezius upper", "Trapezius middle"],
+        steps: [
+          "Đứng thẳng, tạ dọc hai bên, tay thẳng.",
+          "Nâng vai lên cao nhất có thể như đang nhún vai.",
+          "Giữ 2 giây ở đỉnh, hạ chậm.",
+          "Không xoay vai, chỉ nâng thẳng lên xuống."
+        ],
+        svgKey: "shrug"
+      }
+    ]
+  },
+  {
+    id: 4, short: "T6", name: "Thứ 6", type: "Full", typeColor: "#ff5a4a", typeBg: "rgba(255,90,74,0.15)",
+    title: "Toàn Thân + Core",
+    duration: "60 phút", difficulty: "Nhẹ-vừa",
+    exercises: [
+      {
+        id: "plank", name: "Plank", emoji: "🧱",
+        target: "Core, lưng dưới, vai",
+        sets: 3, reps: "45 giây", rest: "45 giây",
+        muscles: ["Rectus abdominis", "Transverse abs", "Erector spinae"],
+        steps: [
+          "Chống khuỷu tay và mũi chân, người thẳng như tấm ván.",
+          "Siết bụng, mông, và đùi cùng lúc.",
+          "Không để hông cao hay thấp hơn thân.",
+          "Thở đều, mắt nhìn xuống sàn trước mặt."
+        ],
+        svgKey: "plank"
+      },
+      {
+        id: "crunch", name: "Crunches", emoji: "🔄",
+        target: "Cơ bụng trên",
+        sets: 3, reps: 20, rest: "45 giây",
+        muscles: ["Rectus abdominis upper"],
+        steps: [
+          "Nằm ngửa, đầu gối gập, tay đặt sau tai.",
+          "Cuộn người lên bằng cơ bụng, không kéo cổ.",
+          "Nâng vai khỏi sàn khoảng 30°, siết bụng.",
+          "Hạ xuống chậm hơn lúc lên."
+        ],
+        svgKey: "crunch"
+      },
+      {
+        id: "russian", name: "Russian Twist", emoji: "🌀",
+        target: "Cơ bụng chéo (oblique)",
+        sets: 3, reps: "20 (mỗi bên)", rest: "45 giây",
+        muscles: ["Obliques", "Rectus abdominis"],
+        steps: [
+          "Ngồi nghiêng 45°, gối gập, chân có thể nâng lên.",
+          "Tay chắp hoặc cầm tạ đĩa, xoay người sang hai bên.",
+          "Mỗi lần chạm sàn tính là 1 rep.",
+          "Giữ lưng thẳng, không cúi gập."
+        ],
+        svgKey: "russian"
+      },
+      {
+        id: "deadlift", name: "Dumbbell Deadlift", emoji: "⚡",
+        target: "Củng cố toàn thân, lưng dưới",
+        sets: 3, reps: 10, rest: "90 giây",
+        muscles: ["Lưng dưới", "Gluteus", "Hamstrings", "Core"],
+        steps: [
+          "Đứng chân rộng hông, tạ phía trước chân.",
+          "Cúi xuống với hông ra sau, lưng thẳng.",
+          "Nắm tạ, đứng dậy bằng cách đẩy hông về trước.",
+          "Siết mông và đứng thẳng hoàn toàn ở điểm trên cùng."
+        ],
+        svgKey: "deadlift"
+      }
+    ]
+  },
+  {
+    id: 5, short: "T7", name: "Thứ 7", type: "Rest", typeColor: "#6b6b72", typeBg: "rgba(107,107,114,0.15)",
+    title: "Ngày Nghỉ Ngơi", isRest: true, duration: "–", difficulty: "–", exercises: []
+  },
+  {
+    id: 6, short: "CN", name: "Chủ Nhật", type: "Rest", typeColor: "#6b6b72", typeBg: "rgba(107,107,114,0.15)",
+    title: "Ngày Nghỉ Ngơi", isRest: true, duration: "–", difficulty: "–", exercises: []
+  }
+];
+
+const NUTRITION_BY_TYPE = {
+  Push:   { cal: 2450, protein: 165, carbs: 290, fat: 65, color: "#4a9fff" },
+  Pull:   { cal: 2400, protein: 160, carbs: 280, fat: 62, color: "#4bcc8c" },
+  Legs:   { cal: 2600, protein: 175, carbs: 320, fat: 70, color: "#ff8c3a" },
+  "Push+":{ cal: 2350, protein: 158, carbs: 275, fat: 60, color: "#b06bff" },
+  Full:   { cal: 2300, protein: 155, carbs: 265, fat: 58, color: "#ff5a4a" },
+  Rest:   { cal: 2000, protein: 140, carbs: 220, fat: 55, color: "#6b6b72" }
+};
+
+const MEALS = {
+  Push:   [
+    { icon: "🥣", name: "Sáng: Yến mạch + trứng", desc: "3 trứng + 80g yến mạch + sữa", kcal: 580 },
+    { icon: "🍗", name: "Trưa: Ức gà + cơm trắng", desc: "200g gà + 150g cơm + rau xanh", kcal: 650 },
+    { icon: "🥤", name: "Trước tập: Chuối + protein", desc: "1 quả chuối + 1 scoop whey", kcal: 280 },
+    { icon: "🍚", name: "Sau tập: Gạo lứt + cá", desc: "150g cơm + 200g cá hồi", kcal: 620 },
+    { icon: "🥛", name: "Tối: Greek yogurt + hạt", desc: "200g yogurt + hạnh nhân", kcal: 320 }
+  ],
+  Legs:   [
+    { icon: "🥣", name: "Sáng: Cháo yến mạch + trứng", desc: "4 trứng + 100g yến mạch", kcal: 680 },
+    { icon: "🍖", name: "Trưa: Thịt bò + khoai lang", desc: "180g bò + 200g khoai lang", kcal: 720 },
+    { icon: "🍌", name: "Trước tập: Cơm + trứng", desc: "100g cơm trắng + 2 trứng", kcal: 380 },
+    { icon: "🍗", name: "Sau tập: Gà + khoai tây", desc: "250g gà + 200g khoai tây", kcal: 700 },
+    { icon: "🥛", name: "Tối: Sữa + đậu phộng", desc: "300ml sữa tươi + 30g đậu phộng", kcal: 320 }
+  ],
+  Rest:   [
+    { icon: "🥚", name: "Sáng: Trứng + bánh mì nguyên cám", desc: "3 trứng + 2 lát bánh mì", kcal: 440 },
+    { icon: "🥗", name: "Trưa: Salad gà + rau", desc: "150g gà + rau trộn dầu olive", kcal: 480 },
+    { icon: "🍎", name: "Chiều: Trái cây", desc: "Táo, cam, hoặc lê", kcal: 150 },
+    { icon: "🐟", name: "Tối: Cá + rau luộc", desc: "200g cá + rau cải luộc", kcal: 520 },
+    { icon: "🥛", name: "Trước ngủ: Casein", desc: "200ml sữa hoặc 1 scoop casein", kcal: 210 }
+  ]
+};
+function getMeals(type) { return MEALS[type] || MEALS.Push; }
+
+const TIPS = [
+  "Uống đủ 2–3 lít nước mỗi ngày, đặc biệt ngày tập chân.",
+  "Warm-up 5–8 phút trước khi tập nặng để giảm chấn thương.",
+  "Ngủ 7–9 tiếng mỗi đêm — cơ phát triển khi bạn ngủ.",
+  "Tăng tạ 2.5–5kg mỗi 1–2 tuần khi bạn đã hoàn thành đủ rep.",
+  "Đau cơ DOMS là bình thường 24–48h sau tập, không phải chấn thương.",
+  "Chụp ảnh tiến trình mỗi 4 tuần để thấy rõ sự thay đổi."
+];
+
+// ─── SVG ILLUSTRATIONS (stick figure style) ──────────────
+const S = (body) => <svg viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg">${body}</svg>;
+const HEAD = (cx,cy,r=8,c="#c8f135") => <circle cx="${cx}" cy="${cy}" r="${r}" fill="${c}" opacity="0.95"/>;
+const LINE = (x1,y1,x2,y2,sw=3.5,c="#e0e0e0",dash="") =>
+  <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="${sw}" stroke-linecap="round"${dash? stroke-dasharray="${dash}`:""}/> `;
+const ARC = (d,sw=3.5,c="#e0e0e0") => <path d="${d}" stroke="${c}" stroke-width="${sw}" stroke-linecap="round" fill="none"/>;
+const FLOOR = (y=98,c="#3a3a40") => <line x1="8" y1="${y}" x2="102" y2="${y}" stroke="${c}" stroke-width="2.5" stroke-linecap="round"/>;
+const BENCH = (y,c="#4a9fff") => `
+  <line x1="18" y1="${y}" x2="92" y2="${y}" stroke="${c}" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="24" y1="${y}" x2="24" y2="${y+18}" stroke="${c}" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+  <line x1="86" y1="${y}" x2="86" y2="${y+18}" stroke="${c}" stroke-width="4" stroke-linecap="round" opacity="0.5"/>`;
+const DUMBBELL = (x,y,c="#888",rot=0) => `<g transform="rotate(${rot},${x},${y})">
+  <rect x="${x-9}" y="${y-3}" width="18" height="6" rx="2" fill="${c}" opacity="0.9"/>
+  <rect x="${x-11}" y="${y-5}" width="5" height="10" rx="2" fill="${c}" opacity="0.8"/>
+  <rect x="${x+6}" y="${y-5}" width="5" height="10" rx="2" fill="${c}" opacity="0.8"/>
+</g>`;
+const BARBELL = (x1,y,x2,c="#888") => `
+  <line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${c}" stroke-width="4" stroke-linecap="round" opacity="0.9"/>
+  <rect x="${x1-8}" y="${y-7}" width="8" height="14" rx="3" fill="${c}" opacity="0.8"/>
+  <rect x="${x2}" y="${y-7}" width="8" height="14" rx="3" fill="${c}" opacity="0.8"/>`;
+
+function getSVG(key) {
+  const G = "#c8f135", W = "#d8d8d0", A = "#4a9fff", B = "#4bcc8c", O = "#ff8c3a", P = "#b06bff", R = "#ff5a4a";
+  const pics = {
+
+    // BENCH PRESS — lying on bench, arms pushing bar up
+    bench: S(`
+      ${BENCH(68,A)}
+      ${HEAD(55,52,7,G)}
+      ${LINE(55,59,55,68,4,W)}
+      ${LINE(55,62,38,58,3.5,W)} ${LINE(38,58,28,48,3.5,W)}
+      ${LINE(55,62,72,58,3.5,W)} ${LINE(72,58,82,48,3.5,W)}
+      ${BARBELL(20,46,82,A)}
+      ${LINE(55,68,48,82,3.5,W)} ${LINE(48,82,44,98,3.5,W)}
+      ${LINE(55,68,62,82,3.5,W)} ${LINE(62,82,66,98,3.5,W)}
+      ${FLOOR(98)}
+    `),
+
+    // INCLINE BENCH PRESS — on inclined bench ~30°
+    incline: S(`
+      <line x1="20" y1="88" x2="85" y2="55" stroke="${A}" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+      <line x1="20" y1="88" x2="20" y2="100" stroke="${A}" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+      <line x1="85" y1="55" x2="90" y2="70" stroke="${A}" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+      ${HEAD(72,40,7,G)}
+      ${LINE(72,47,72,58,4,W)}
+      ${LINE(72,50,58,44,3.5,W)} ${LINE(58,44,50,34,3.5,W)}
+      ${LINE(72,50,86,44,3.5,W)} ${LINE(86,44,94,34,3.5,W)}
+      ${BARBELL(42,33,86,A)}
+      ${LINE(72,58,62,72,3.5,W)} ${LINE(62,72,55,88,3.5,W)}
+      ${LINE(72,58,80,72,3.5,W)} ${LINE(80,72,88,82,3.5,W)}
+      ${FLOOR(100)}
+    `),
+
+    // DUMBBELL FLYE — lying, arms out wide then arc up
+    fly: S(`
+      ${BENCH(68,A)}
+      ${HEAD(55,52,7,G)}
+      ${LINE(55,59,55,68,4,W)}
+      ${ARC("M 28 52 Q 20 42 30 36",3.5,W)} ${DUMBBELL(25,36,A,-20)}
+      ${ARC("M 82 52 Q 90 42 80 36",3.5,W)} ${DUMBBELL(85,36,A,20)}
+      ${LINE(55,62,28,52,3.5,W)}
+      ${LINE(55,62,82,52,3.5,W)}
+      ${LINE(55,68,48,82,3.5,W)} ${LINE(48,82,44,98,3.5,W)}
+      ${LINE(55,68,62,82,3.5,W)} ${LINE(62,82,66,98,3.5,W)}
+      ${FLOOR(98)}
+    `),
+
+    // SHOULDER PRESS — seated, dumbbells pushed overhead
+    shoulder: S(`
+      <rect x="38" y="75" width="34" height="8" rx="3" fill="${A}" opacity="0.5"/>
+      <line x1="38" y1="83" x2="36" y2="100" stroke="${A}" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+      <line x1="72" y1="83" x2="74" y2="100" stroke="${A}" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+      ${HEAD(55,20,7,G)}
+      ${LINE(55,27,55,50,4,W)}
+      ${LINE(55,32,38,26,3.5,W)} ${LINE(38,26,32,14,3.5,W)}
+      ${LINE(55,32,72,26,3.5,W)} ${LINE(72,26,78,14,3.5,W)}
+      ${DUMBBELL(30,14,A)} ${DUMBBELL(80,14,A)}
+      ${LINE(55,50,44,68,3.5,W)} ${LINE(44,68,40,83,3.5,W)}
+      ${LINE(55,50,66,68,3.5,W)} ${LINE(66,68,70,83,3.5,W)}
+      ${FLOOR(100)}
+    `),
+
+    // LATERAL RAISE — standing, arms rising to sides
+    lateral: S(`
+      ${HEAD(55,14,7,G)}
+      ${LINE(55,21,55,50,4,W)}
+      ${LINE(55,33,22,44,3.5,W)} ${DUMBBELL(18,45,A)}
+      ${LINE(55,33,88,44,3.5,W)} ${DUMBBELL(92,45,A)}
+      ${ARC("M 30 58 Q 22 52 22 44",2.5,A,"4 3")}
+      ${ARC("M 80 58 Q 88 52 88 44",2.5,A,"4 3")}
+      ${LINE(55,50,46,70,3.5,W)} ${LINE(46,70,42,88,3.5,W)}
+      ${LINE(55,50,64,70,3.5,W)} ${LINE(64,70,68,88,3.5,W)}
+      ${FLOOR(90)}
+    `),
+
+    // LAT PULLDOWN — seated, pulling bar from above to chest
+    pulldown: S(`
+      <line x1="10" y1="6" x2="100" y2="6" stroke="${B}" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+      <line x1="55" y1="6" x2="55" y2="20" stroke="${B}" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+      <line x1="32" y1="20" x2="78" y2="20" stroke="${B}" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+      <rect x="38" y="75" width="34" height="8" rx="3" fill="${B}" opacity="0.4"/>
+      <line x1="38" y1="83" x2="36" y2="100" stroke="${B}" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+      <line x1="72" y1="83" x2="74" y2="100" stroke="${B}" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+      ${HEAD(55,28,7,G)}
+      ${LINE(55,35,55,56,4,W)}
+      ${LINE(55,40,38,28,3.5,W)} ${LINE(38,28,32,20,3.5,W)}
+      ${LINE(55,40,72,28,3.5,W)} ${LINE(72,28,78,20,3.5,W)}
+      ${LINE(55,56,45,72,3.5,W)} ${LINE(45,72,42,83,3.5,W)}
+      ${LINE(55,56,65,72,3.5,W)} ${LINE(65,72,68,83,3.5,W)}
+    `),
+
+    // SEATED ROW — leaning forward, pulling cable to belly
+    row: S(`
+      <line x1="8" y1="60" x2="40" y2="60" stroke="${B}" stroke-width="3" stroke-linecap="round" opacity="0.5"/>
+      <rect x="4" y="52" width="8" height="16" rx="3" fill="${B}" opacity="0.6"/>
+      <line x1="40" y1="60" x2="52" y2="55" stroke="${B}" stroke-width="2.5" stroke-linecap="round" opacity="0.7" stroke-dasharray="3 3"/>
+      <rect x="38" y="80" width="34" height="7" rx="3" fill="${B}" opacity="0.4"/>
+      <line x1="38" y1="87" x2="36" y2="100" stroke="${B}" stroke-width="3" opacity="0.3"/>
+      <line x1="72" y1="87" x2="74" y2="100" stroke="${B}" stroke-width="3" opacity="0.3"/>
+      ${HEAD(62,20,7,G)}
+      ${LINE(62,27,54,50,4,W)}
+      ${LINE(56,38,40,30,3.5,W)} ${LINE(40,30,28,28,3.5,W)}
+      ${LINE(56,38,66,44,3.5,W)}
+      ${LINE(54,50,44,66,3.5,W)} ${LINE(44,66,42,80,3.5,W)}
+      ${LINE(54,50,66,66,3.5,W)} ${LINE(66,66,68,80,3.5,W)}
+    `),
+
+    // BICEP CURL — standing, arm curled up
+    curl: S(`
+      ${HEAD(55,12,7,G)}
+      ${LINE(55,19,55,46,4,W)}
+      ${LINE(55,30,76,38,3.5,W)}
+      ${LINE(55,30,38,36,3.5,W)} ${LINE(38,36,32,52,3.5,W)}
+      ${ARC("M 76 38 Q 86 46 80 60",3.5,B)}
+      ${DUMBBELL(78,62,B)}
+      ${LINE(55,46,46,64,3.5,W)} ${LINE(46,64,42,82,3.5,W)}
+      ${LINE(55,46,64,64,3.5,W)} ${LINE(64,64,68,82,3.5,W)}
+      ${FLOOR(84)}
+    `),
+
+    // HAMMER CURL — neutral grip curl
+    hammer: S(`
+      ${HEAD(55,12,7,G)}
+      ${LINE(55,19,55,46,4,W)}
+      ${LINE(55,30,74,36,3.5,W)}
+      ${LINE(55,30,38,36,3.5,W)} ${LINE(38,36,32,52,3.5,W)}
+      ${ARC("M 74 36 Q 80 42 76 56",3.5,B)}
+      <rect x="72" y="56" width="6" height="16" rx="3" fill="${B}" opacity="0.9"/>
+      <rect x="68" y="54" width="12" height="5" rx="2" fill="${B}" opacity="0.8"/>
+      ${LINE(55,46,46,64,3.5,W)} ${LINE(46,64,42,82,3.5,W)}
+      ${LINE(55,46,64,64,3.5,W)} ${LINE(64,64,68,82,3.5,W)}
+      ${FLOOR(84)}
+    `),
+
+    // SQUAT — deep squat with barbell on shoulders
+    squat: S(`
+      ${BARBELL(16,38,84,A)}
+      ${HEAD(50,18,7,G)}
+      ${LINE(50,25,50,38,4,W)}
+      ${LINE(34,38,66,38,3.5,A)}
+      ${LINE(50,38,34,60,3.5,W)} ${LINE(34,60,26,80,3.5,W)} ${LINE(26,80,22,96,3,W)}
+      ${LINE(50,38,66,60,3.5,W)} ${LINE(66,60,74,80,3.5,W)} ${LINE(74,80,78,96,3,W)}
+      ${LINE(22,96,42,96,3,W)} ${LINE(78,96,58,96,3,W)}
+      ${FLOOR(98)}
+    `),
+
+    // ROMANIAN DEADLIFT — hinging at hips, back flat
+    rdl: S(`
+      ${HEAD(75,20,7,G)}
+      ${LINE(75,27,60,50,4,W)}
+      ${LINE(62,36,76,30,3.5,W)} ${LINE(76,30,88,40,3.5,W)}
+      ${LINE(62,36,50,42,3.5,W)}
+      ${LINE(60,50,50,72,3.5,W)} ${LINE(50,72,46,92,3,W)}
+      ${LINE(60,50,68,72,3.5,W)} ${LINE(68,72,66,92,3,W)}
+      ${BARBELL(28,48,84,B)}
+      ${LINE(88,40,82,50,3.5,W)}
+      ${FLOOR(94)}
+    `),
+
+    // LEG PRESS — reclined, legs pushing plate
+    legpress: S(`
+      <rect x="8" y="50" width="48" height="32" rx="6" fill="${O}" opacity="0.15" stroke="${O}" stroke-width="1.5"/>
+      <rect x="60" y="22" width="42" height="56" rx="6" fill="${O}" opacity="0.12" stroke="${O}" stroke-width="1.5"/>
+      ${HEAD(25,58,7,G)}
+      ${LINE(25,65,32,75,4,W)}
+      ${LINE(32,60,50,52,3.5,W)} ${LINE(50,52,68,38,3.5,W)}
+      ${LINE(50,52,54,66,3.5,W)} ${LINE(54,66,70,68,3.5,W)} ${LINE(70,68,80,58,3.5,W)}
+      <rect x="78" y="48" width="18" height="28" rx="4" fill="${O}" opacity="0.6"/>
+      ${FLOOR(100)}
+    `),
+
+    // CALF RAISE — standing on toes, raised heels
+    calf: S(`
+      ${HEAD(55,10,7,G)}
+      ${LINE(55,17,55,44,4,W)}
+      ${LINE(55,28,38,36,3.5,W)} ${LINE(38,36,32,50,3.5,W)}
+      ${LINE(55,28,72,36,3.5,W)} ${LINE(72,36,78,50,3.5,W)}
+      ${LINE(55,44,48,66,3.5,W)} ${LINE(48,66,45,84,3.5,W)}
+      ${LINE(55,44,62,66,3.5,W)} ${LINE(62,66,65,84,3.5,W)}
+      <line x1="35" y1="92" x2="75" y2="92" stroke="#3a3a40" stroke-width="4" stroke-linecap="round"/>
+      <line x1="41" y1="86" x2="41" y2="92" stroke="${O}" stroke-width="4" stroke-linecap="round"/>
+      <line x1="69" y1="86" x2="69" y2="92" stroke="${O}" stroke-width="4" stroke-linecap="round"/>
+      <line x1="35" y1="85" x2="47" y2="85" stroke="${O}" stroke-width="3" stroke-linecap="round"/>
+      <line x1="63" y1="85" x2="75" y2="85" stroke="${O}" stroke-width="3" stroke-linecap="round"/>
+    `),
+
+    // ARNOLD PRESS — seated, dumbbells rotating up
+    arnold: S(`
+      <rect x="36" y="74" width="34" height="8" rx="3" fill="${P}" opacity="0.5"/>
+      <line x1="36" y1="82" x2="34" y2="100" stroke="${P}" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+      <line x1="70" y1="82" x2="72" y2="100" stroke="${P}" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+      ${HEAD(55,20,7,G)}
+      ${LINE(55,27,55,50,4,W)}
+      ${LINE(55,35,38,28,3.5,W)} ${LINE(38,28,30,16,3.5,W)}
+      ${LINE(55,35,72,28,3.5,W)} ${LINE(72,28,80,16,3.5,W)}
+      ${DUMBBELL(28,14,P)} ${DUMBBELL(82,14,P)}
+      ${ARC("M 38 28 Q 32 38 36 48",2,P,"3 3")}
+      ${ARC("M 72 28 Q 78 38 74 48",2,P,"3 3")}
+      ${LINE(55,50,45,66,3.5,W)} ${LINE(45,66,42,80,3.5,W)}
+      ${LINE(55,50,65,66,3.5,W)} ${LINE(65,66,68,80,3.5,W)}
+      ${FLOOR(100)}
+    `),
+
+    // TRICEP PUSHDOWN — standing, pushing cable bar down
+    tricep: S(`
+      <line x1="46" y1="4" x2="64" y2="4" stroke="${P}" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+      <line x1="55" y1="4" x2="55" y2="22" stroke="${P}" stroke-width="3" stroke-linecap="round" opacity="0.6" stroke-dasharray="3 3"/>
+      ${HEAD(55,14,7,G)}
+      ${LINE(55,21,55,48,4,W)}
+      ${LINE(55,34,40,28,3.5,W)} ${LINE(40,28,36,40,3.5,W)} ${LINE(36,40,42,52,3.5,W)}
+      ${LINE(55,34,70,28,3.5,W)} ${LINE(70,28,74,40,3.5,W)} ${LINE(74,40,68,52,3.5,W)}
+      <line x1="36" y1="54" x2="74" y2="54" stroke="${P}" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+      ${LINE(55,48,48,68,3.5,W)} ${LINE(48,68,44,88,3.5,W)}
+      ${LINE(55,48,62,68,3.5,W)} ${LINE(62,68,66,88,3.5,W)}
+      ${FLOOR(90)}
+    `),
+
+    // OVERHEAD TRICEP EXTENSION — standing, dumbbell behind head
+    overhead_tri: S(`
+      ${HEAD(55,14,7,G)}
+      ${LINE(55,21,55,48,4,W)}
+      ${LINE(55,30,40,22,3.5,W)} ${LINE(40,22,44,10,3.5,W)}
+      ${LINE(55,30,70,22,3.5,W)} ${LINE(70,22,66,10,3.5,W)}
+      ${DUMBBELL(55,6,P)}
+      ${LINE(55,48,46,68,3.5,W)} ${LINE(46,68,42,88,3.5,W)}
+      ${LINE(55,48,64,68,3.5,W)} ${LINE(64,68,68,88,3.5,W)}
+      ${FLOOR(90)}
+    `),
+
+    // SHRUG — standing, shoulders raised high
+    shrug: S(`
+      ${HEAD(55,12,7,G)}
+      <line x1="34" y1="22" x2="76" y2="22" stroke="${P}" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+      ${LINE(55,20,55,48,4,W)}
+      ${LINE(34,22,22,34,3.5,W)} ${DUMBBELL(18,38,P,20)}
+      ${LINE(76,22,88,34,3.5,W)} ${DUMBBELL(92,38,P,-20)}
+      <line x1="40" y1="22" x2="36" y2="14" stroke="${P}" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 2"/>
+      <line x1="70" y1="22" x2="74" y2="14" stroke="${P}" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 2"/>
+      ${LINE(55,48,46,68,3.5,W)} ${LINE(46,68,42,88,3.5,W)}
+      ${LINE(55,48,64,68,3.5,W)} ${LINE(64,68,68,88,3.5,W)}
+      ${FLOOR(90)}
+    `),
+
+    // PLANK — forearm plank, body straight as a board
+    plank: S(`
+      ${HEAD(92,36,7,G)}
+      ${LINE(92,43,55,50,4,W)}
+      ${LINE(78,46,82,60,3.5,W)} ${LINE(82,60,85,74,3.5,W)}
+      ${LINE(78,46,70,54,3,R)}
+      ${LINE(55,50,38,54,4,W)}
+      ${LINE(38,54,28,68,3.5,W)} ${LINE(28,68,24,84,3.5,W)}
+      ${LINE(38,54,26,60,3,R)}
+      <line x1="22" y1="84" x2="87" y2="76" stroke="#3a3a40" stroke-width="3.5" stroke-linecap="round"/>
+    `),
+
+    // CRUNCH — upper body curling up from floor
+    crunch: S(`
+      ${FLOOR(94,"#3a3a40")}
+      ${HEAD(66,34,7,G)}
+      ${ARC("M 66 41 Q 55 54 50 64",4,W)}
+      ${LINE(66,40,80,36,3.5,W)} ${LINE(80,36,84,28,3,W)}
+      ${LINE(66,40,54,40,3.5,W)}
+      <line x1="34" y1="64" x2="80" y2="64" stroke="${W}" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="34" y1="64" x2="28" y2="80" stroke="${W}" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="60" y1="64" x2="54" y2="82" stroke="${W}" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="28" y1="80" x2="54" y2="82" stroke="${W}" stroke-width="3.5" stroke-linecap="round"/>
+    `),
+
+    // RUSSIAN TWIST — seated V-sit, torso rotating
+    russian: S(`
+      ${FLOOR(98,"#3a3a40")}
+      ${HEAD(55,24,7,G)}
+      ${ARC("M 55 31 Q 46 50 40 62",4,W)}
+      ${LINE(55,31,70,36,3.5,W)} ${LINE(70,36,82,30,3.5,W)}
+      ${DUMBBELL(82,28,R,-15)}
+      <line x1="26" y1="62" x2="68" y2="62" stroke="${W}" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="26" y1="62" x2="20" y2="80" stroke="${W}" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="60" y1="62" x2="66" y2="80" stroke="${W}" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="20" y1="80" x2="66" y2="80" stroke="${W}" stroke-width="3.5" stroke-linecap="round"/>
+    `),
+
+    // DEADLIFT — standing, lifting barbell from floor
+    deadlift: S(`
+      ${HEAD(55,12,7,G)}
+      ${LINE(55,19,55,44,4,W)}
+      ${LINE(55,30,38,36,3.5,W)} ${LINE(38,36,30,52,3.5,W)}
+      ${LINE(55,30,72,36,3.5,W)} ${LINE(72,36,80,52,3.5,W)}
+      ${LINE(55,44,48,66,3.5,W)} ${LINE(48,66,44,84,3.5,W)}
+      ${LINE(55,44,62,66,3.5,W)} ${LINE(62,66,66,84,3.5,W)}
+      ${BARBELL(18,76,82,R)}
+      ${LINE(30,52,32,76,3.5,W)} ${LINE(80,52,78,76,3.5,W)}
+      ${FLOOR(92)}
+    `),
+  };
+  return pics[key] || pics.bench;
+}
+
+// ─── STATE ───────────────────────────────────────────────
+let state = JSON.parse(localStorage.getItem("gymlog_v2") || "null") || {
+  activeDay: new Date().getDay() === 0 ? 6 : new Date().getDay() - 1,
+  completed: {},
+  streak: 0,
+  totalSessions: 0,
+  weeklyDone: [0, 0, 0, 0, 0, 0, 0],
+  lastTipIdx: 0
+};
+if (state.activeDay > 6) state.activeDay = 0;
+
+function save() { localStorage.setItem("gymlog_v2", JSON.stringify(state)); }
+
+function getCompletedKey(dayId, exId) { return ${dayId}_${exId}; }
+function isDayFullyDone(dayId) {
+  const day = WEEK_DATA[dayId];
+  if (!day || day.isRest) return false;
+  return day.exercises.every(ex => state.completed[getCompletedKey(dayId, ex.id)]);
+}
+function getProgress(dayId) {
+  const day = WEEK_DATA[dayId];
+  if (!day || day.isRest || !day.exercises.length) return 0;
+  const done = day.exercises.filter(ex => state.completed[getCompletedKey(dayId, ex.id)]).length;
+  return Math.round((done / day.exercises.length) * 100);
+}
+
+// ─── RENDER ──────────────────────────────────────────────
+function renderStats() {
+  const totalEx = Object.keys(state.completed).length;
+  const sessionsThisWeek = WEEK_DATA.filter((d, i) => isDayFullyDone(i)).length;
+  document.getElementById("statsRow").innerHTML = [
+    { label: "Chuỗi hiện tại", value: state.streak, sub: "ngày liên tiếp", icon: "🔥" },
+    { label: "Buổi tập tuần này", value: sessionsThisWeek, sub:/ 5 buổi mục tiêu`, icon: "📅" },
+    { label: "Bài tập hoàn thành", value: totalEx, sub: "tổng cộng", icon: "✅" },
+    { label: "Tổng buổi tập", value: state.totalSessions, sub: "từ trước đến nay", icon: "🏆" }
+  ].map((s, i) => `
+    <div class="stat-card fade-in">
+      <div class="label">${s.label}</div>
+      <div class="value">${s.value}</div>
+      <div class="sub">${s.sub}</div>
+      <div class="icon-bg">${s.icon}</div>
+    </div>
+  `).join("");
+}
+
+function renderWeekNav() {
+  const today = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+  document.getElementById("weekNav").innerHTML = WEEK_DATA.map((d, i) => {
+    let cls = "day-tab";
+    if (i === state.activeDay) cls += " active";
+    else if (d.isRest) cls += " rest";
+    else if (isDayFullyDone(i)) cls += " done";
+    return `<button class="${cls}" onclick="selectDay(${i})">
+      <span class="day-short">${d.short}</span>
+      <span class="day-num">${i === today ? "Hôm nay" : d.type === "Rest" ? "Nghỉ" : getProgress(i) + "%"}</span>
+    </button>`;
+  }).join("");
+}
+
+function renderWorkout() {
+  const d = WEEK_DATA[state.activeDay];
+  if (d.isRest) {
+    document.getElementById("workoutSection").innerHTML = `
+      <div class="rest-day">
+        <div class="rest-icon">😴</div>
+        <h2>Ngày Nghỉ Ngơi</h2>
+        <p>Cơ bắp phát triển khi bạn nghỉ ngơi. Hãy ngủ đủ giấc, uống đủ nước và ăn đủ protein để chuẩn bị cho buổi tập tiếp theo.</p>
+      </div>`;
+    return;
+  }
+  const progress = getProgress(state.activeDay);
+  const allDone = isDayFullyDone(state.activeDay);
+  document.getElementById("workoutSection").innerHTML = `
+    <div class="workout-header">
+      <div>
+        <div class="workout-type" style="background:${d.typeBg};color:${d.typeColor}">${d.type} Day</div>
+        <div class="workout-title">${d.title}</div>
+        <div class="workout-meta">
+          <span class="meta-item">⏱ ${d.duration}</span>
+          <span class="meta-item">📊 ${d.difficulty}</span>
+          <span class="meta-item">🎯 ${d.exercises.length} bài</span>
+        </div>
+      </div>
+      <button class="start-btn ${allDone ? 'done-btn' : ''}" onclick="markDayDone(${state.activeDay})">
+        ${allDone ? "✓ Hoàn thành!" : "Bắt đầu tập ▶"}
+      </button>
+    </div>
+    <div class="ex-list">
+      ${d.exercises.map((ex, i) => {
+        const done = state.completed[getCompletedKey(state.activeDay, ex.id)];
+        return `<div class="ex-item ${done ? 'completed' : ''} fade-in" id="exitem_${ex.id}">
+          <div class="ex-img">${getSVG(ex.svgKey)}</div>
+          <div class="ex-info">
+            <div class="ex-name">${ex.name}</div>
+            <div class="ex-target">${ex.target}</div>
+            <div class="ex-sets-row">
+              <span class="set-pill">${ex.sets} sets</span>
+              <span class="set-pill">${ex.reps} reps</span>
+              <span class="set-pill">Nghỉ ${ex.rest}</span>
+            </div>
+          </div>
+          <button class="ex-check" onclick="toggleEx(${state.activeDay},'${ex.id}')">${done ? "✓" : ""}</button>
+          <button class="ex-detail-btn" onclick="openModal('${ex.id}',${state.activeDay})">Chi tiết →</button>
+        </div>`;
+      }).join("")}
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label"><span>Tiến độ hôm nay</span><span>${progress}%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+    </div>`;
+}
+
+function renderNutrition() {
+  const d = WEEK_DATA[state.activeDay];
+  const n = NUTRITION_BY_TYPE[d.type] || NUTRITION_BY_TYPE.Rest;
+  const meals = getMeals(d.isRest ? "Rest" : d.type);
+  const totalMeals = meals.reduce((a, m) => a + m.kcal, 0);
+  document.getElementById("nutritionCard").innerHTML = `
+    <div class="card-header">
+      <span class="card-title">Dinh dưỡng hôm nay</span>
+      <span class="card-tag" style="background:${n.color}22;color:${n.color}">${d.isRest ? "Nghỉ" : "Ngày tập"}</span>
+    </div>
+    <div class="nutrition-hero">
+      <div class="cal-display">${n.cal}</div>
+      <div class="cal-label">kcal / ngày mục tiêu</div>
+    </div>
+    <div class="macro-grid">
+      <div class="macro-item">
+        <div class="macro-val" style="color:#4a9fff">${n.protein}g</div>
+        <div class="macro-key">Protein</div>
+        <div class="macro-bar" style="background:rgba(74,159,255,0.2)"><div style="height:100%;width:${Math.round(n.protein/2.2)}%;background:#4a9fff;border-radius:2px"></div></div>
+      </div>
+      <div class="macro-item">
+        <div class="macro-val" style="color:#ff8c3a">${n.carbs}g</div>
+        <div class="macro-key">Carbs</div>
+        <div class="macro-bar" style="background:rgba(255,140,58,0.2)"><div style="height:100%;width:${Math.round(n.carbs/3.8)}%;background:#ff8c3a;border-radius:2px"></div></div>
+      </div>
+      <div class="macro-item">
+        <div class="macro-val" style="color:#4bcc8c">${n.fat}g</div>
+        <div class="macro-key">Chất béo</div>
+        <div class="macro-bar" style="background:rgba(75,204,140,0.2)"><div style="height:100%;width:${Math.round(n.fat/0.9)}%;background:#4bcc8c;border-radius:2px"></div></div>
+      </div>
+    </div>
+    <div class="meal-list">
+      ${meals.map(m => `<div class="meal-item">
+        <span class="meal-icon">${m.icon}</span>
+        <div class="meal-info">
+          <div class="meal-name">${m.name}</div>
+          <div class="meal-desc">${m.desc}</div>
+        </div>
+        <span class="meal-kcal">${m.kcal}</span>
+      </div>`).join("")}
+    </div>`;
+}
+
+function renderWeekly() {
+  const maxVal = Math.max(...state.weeklyDone, 5);
+  document.getElementById("weeklyCard").innerHTML = `
+    <div class="card-header" style="border:none;padding:0 0 0 0;margin-bottom:0">
+      <span class="card-title" style="font-size:11px">Tiến trình tuần này</span>
+      <span style="font-size:11px;color:var(--muted2)">${state.weeklyDone.filter(Boolean).length} / 5 buổi</span>
+    </div>
+    <div class="weekly-bars">
+      ${WEEK_DATA.map((d, i) => {
+        const h = Math.max(8, Math.round((state.weeklyDone[i] / maxVal) * 80));
+        const active = i === state.activeDay;
+        const isRest = d.isRest;
+        return `<div class="w-bar-wrap">
+          <div class="w-bar" style="height:${isRest ? 4 : h}px;background:${active ? 'var(--accent)' : isRest ? 'var(--bg4)' : state.weeklyDone[i] > 0 ? 'rgba(200,241,53,0.4)' : 'var(--bg4)'}"></div>
+          <span class="w-label">${d.short}</span>
+        </div>`;
+      }).join("")}
+    </div>`;
+}
+
+function renderTips() {
+  const tip = TIPS[state.lastTipIdx % TIPS.length];
+  document.getElementById("tipsCard").innerHTML = `
+    <div class="tip-title">💡 Mẹo hôm nay</div>
+    <div class="tip-text">${tip}</div>`;
+}
+
+function renderAll() {
+  renderStats();
+  renderWeekNav();
+  renderWorkout();
+  renderNutrition();
+  renderWeekly();
+  renderTips();
+  document.getElementById("streakCount").textContent = state.streak;
+  const now = new Date();
+  document.getElementById("weekLabel").textContent = Tuần ${getWeekNumber(now)} • ${now.getFullYear()};
+}
+
+// ─── ACTIONS ─────────────────────────────────────────────
+function selectDay(i) {
+  state.activeDay = i;
+  save();
+  renderWeekNav();
+  renderWorkout();
+  renderNutrition();
+  renderWeekly();
+  renderTips();
+}
+
+function toggleEx(dayId, exId) {
+  const key = getCompletedKey(dayId, exId);
+  state.completed[key] = !state.completed[key];
+  if (state.completed[key]) showNotif("✓ Hoàn thành bài tập!");
+  save();
+  renderWorkout();
+  renderStats();
+  renderWeekNav();
+  if (isDayFullyDone(dayId)) {
+    if (!state.weeklyDone[dayId]) {
+      state.weeklyDone[dayId] = 1;
+      state.totalSessions++;
+      state.streak++;
+      state.lastTipIdx++;
+      save();
+      setTimeout(() => showNotif("🎉 Hoàn thành buổi tập hôm nay!"), 300);
+      renderStats();
+      renderWeekly();
+    }
+  }
+}
+
+function markDayDone(dayId) {
+  const day = WEEK_DATA[dayId];
+  if (!day || day.isRest) return;
+  const allDone = isDayFullyDone(dayId);
+  day.exercises.forEach(ex => {
+    state.completed[getCompletedKey(dayId, ex.id)] = !allDone;
+  });
+  if (!allDone && !state.weeklyDone[dayId]) {
+    state.weeklyDone[dayId] = 1;
+    state.totalSessions++;
+    state.streak++;
+    state.lastTipIdx++;
+    setTimeout(() => showNotif("🎉 Xuất sắc! Buổi tập hoàn thành!"), 200);
+  }
+  save();
+  renderAll();
+}
+
+function openModal(exId, dayId) {
+  const day = WEEK_DATA[dayId];
+  const ex = day.exercises.find(e => e.id === exId);
+  if (!ex) return;
+  const d = day;
+  document.getElementById("modalContent").innerHTML = `
+    <div class="modal-header">
+      <div>
+        <div class="modal-ex-title">${ex.name}</div>
+        <span class="modal-tag" style="background:${d.typeBg};color:${d.typeColor}">${d.type} — ${ex.target}</span>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="anim-wrap">${getSVG(ex.svgKey)}</div>
+      <div class="modal-sets-grid">
+        <div class="mset-card"><div class="mset-val">${ex.sets}</div><div class="mset-key">Sets</div></div>
+        <div class="mset-card"><div class="mset-val">${ex.reps}</div><div class="mset-key">Reps</div></div>
+        <div class="mset-card"><div class="mset-val" style="font-size:18px">${ex.rest}</div><div class="mset-key">Nghỉ</div></div>
+      </div>
+      <div class="muscles-wrap">
+        <div class="muscles-title">Nhóm cơ</div>
+        <div class="muscles-row">
+          ${ex.muscles.map((m, i) => <span class="muscle-tag ${i === 0 ? 'primary' : ''}">${m}</span>).join("")}
+        </div>
+      </div>
+      <div class="muscles-title" style="margin-top:16px">Hướng dẫn kỹ thuật</div>
+      <div class="steps-list">
+        ${ex.steps.map((s, i) => <div class="step-item"><span class="step-num">${i+1}</span><span class="step-text">${s}</span></div>).join("")}
+      </div>
+    </div>`;
+  document.getElementById("modal").classList.add("open");
+}
+
+function closeModal() { document.getElementById("modal").classList.remove("open"); }
+document.getElementById("modal").addEventListener("click", e => { if (e.target === e.currentTarget) closeModal(); });
+
+function showNotif(msg) {
+  const el = document.getElementById("notif");
+  document.getElementById("notifText").textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2800);
+}
+
+function getWeekNumber(d) {
+  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  return Math.ceil((((d - new Date(Date.UTC(d.getUTCFullYear(), 0, 1))) / 86400000) + 1) / 7);
+}
+
+// ─── INIT ────────────────────────────────────────────────
+renderAll();
+</script>
+</body>
+</html>
